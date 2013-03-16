@@ -7,11 +7,11 @@ import java.util.Vector;
 import com.ngochoang.database.DatabaseLayer;
 
 public class ReferenceSet {
-	Vector<Vector<String>> referenceAttributeSets;
-	Vector<Vector<Integer>> referenceValues;
+	public Vector<Vector<String>> referenceAttributeSets;
+	public Vector<Vector<Vector<Integer>>> referenceValueSets;
 	public DatabaseLayer db;
 	Random ran = new Random();
-	static int numAttr = 0;
+	public static int numAttr = 0;
 
 	public void GenerateReferenceSet() {
 		if (numAttr == 0)
@@ -50,17 +50,44 @@ public class ReferenceSet {
 			}
 		}
 
-		referenceValues = new Vector<Vector<Integer>>();
+		referenceValueSets = new Vector<Vector<Vector<Integer>>>();
+		
 		for (int i = 0; i < numAttr; i++) {
+			Vector<Vector<Integer>> referenceValues = new Vector<Vector<Integer>>();
 			Vector<Integer> values = new Vector<Integer>();
-			for (int j = 0; j < numAttr; j++) {
-				values.add(ran.nextInt(App.max_value_on_attribute
-						- App.min_value_on_attribute)
-						+ App.min_value_on_attribute);
+			int numValues = ran.nextInt(numAttr) + 1;
+			Vector<Integer> selectedV = new Vector<Integer>();
+			for (int j = 0; j < numValues; j++) {
+				int newGroup = ran.nextInt(4);
+				int v = 0;
+				do {
+					v = ran.nextInt(App.max_value_on_attribute
+							- App.min_value_on_attribute)
+							+ App.min_value_on_attribute;
+				} while (selectedV.contains(v) == true);
+				selectedV.add(v);
+				
+				if (newGroup == 0 || j == numValues-1)
+				{
+					values.add(v);
+					if (j == numValues - 1)
+						referenceValues.add(values);
+				} 
+				else // create new set
+				{
+					if (values.size() == 0) {
+						values = new Vector<Integer>();
+						values.add(v);
+					} else {
+						referenceValues.add(values);
+						values = new Vector<Integer>();
+						values.add(v);
+					}
+				}
 			}
-			referenceValues.add(values);
+			referenceValueSets.add(referenceValues);
 		}
 
-		db.InsertReference(numAttr, referenceAttributeSets, referenceValues);
+		db.InsertReference(referenceAttributeSets, referenceValueSets);
 	}
 }

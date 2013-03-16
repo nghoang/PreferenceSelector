@@ -10,6 +10,7 @@ import java.util.Random;
 import java.util.Vector;
 
 import com.ngochoang.referenceselector.App;
+import com.ngochoang.referenceselector.ReferenceSet;
 
 //this class contains all the methods to interact with database
 public class DatabaseLayer {
@@ -19,7 +20,7 @@ public class DatabaseLayer {
 	ResultSet resultSet = null;
 	String table_prefix = "1";
 	Random ran = new Random(App.random_seed);
-	
+
 	public boolean Connect() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
@@ -92,10 +93,16 @@ public class DatabaseLayer {
 
 	}
 
-	public void InsertReference(int numAttr, Vector<Vector<String>> referenceAttributeSets,
-			Vector<Vector<Integer>> referenceValues) {
+	public void InsertReference(Vector<Vector<String>> referenceAttributeSets,
+			Vector<Vector<Vector<Integer>>> referenceValues) {
 		try {
-			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix + "reference_rules (";
+			int numAttr = 0;
+			for (Vector<String> t : referenceAttributeSets) {
+				numAttr += t.size();
+			}
+
+			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
+					+ "reference_rules (";
 			query += " `rule_id` int(11) NOT NULL AUTO_INCREMENT,";
 			query += " `rule_attributes` varchar(500) ";
 			for (int i = 0; i < numAttr; i++) {
@@ -120,22 +127,122 @@ public class DatabaseLayer {
 			Ex.printStackTrace();
 		}
 	}
-	
-	public Vector<String> GenerateSelectionQueries(int numAttr, Vector<Vector<String>> referenceAttributeSets,
-			Vector<Vector<Integer>> referenceValues)
-	{
-		Vector<String> queries = new Vector<String>();
-		for (int i=0;i<numAttr;i++)
-		{
-			String query = "SELECT * FROM " + table_prefix + "reference_data WHERE ";
-			for (Vector<String> attrs : referenceAttributeSets)
-			{
-				for (String attr : attrs)
-				{
-					query += " attr_" + attr + " = ''";
+
+	public void GenerateSelectionQueries(ReferenceSet r) {
+		try {
+			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
+					+ "reference_queries (";
+			query += " `query_id` int(11) NOT NULL AUTO_INCREMENT,";
+			query += " `query` varchar(5000) ";
+			query += ", `query_attr` varchar(5000) ";
+			query += ", `query_level` varchar(5000) ";
+			query += ", PRIMARY KEY (`query_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
+			statement = connect.createStatement();
+			statement.executeUpdate(query);
+			statement.close();
+
+			int numAttr = 0;
+			for (Vector<String> t : r.referenceAttributeSets) {
+				numAttr += t.size();
+			}
+			Vector<String> attrs = new Vector<String>();
+			Vector<Vector<Integer>> values = new Vector<Vector<Integer>>();
+			System.out.println("Attributes:");
+			System.out.println(r.referenceAttributeSets.toString());
+			for (Vector<String> ats : r.referenceAttributeSets) {
+				attrs.addAll(ats);
+			}
+			System.out.println("Attribute Values:");
+			for (Vector<Vector<Integer>> v1 : r.referenceValueSets) {
+				Vector<Integer> v3 = new Vector<Integer>();
+				System.out.println(v1.toString());
+				for (Vector<Integer> v2 : v1) {
+					v3.addAll(v2);
+				}
+				values.add(v3);
+			}
+			Vector<Integer> attrIndexes = new Vector<Integer>();
+			for (int i = 0; i < numAttr; i++)
+				attrIndexes.add(0);
+			//Vector<String> subqueryset = new Vector<String>();
+			int query_level = 0;
+			while (true) {
+				boolean isEqual = false;
+				query = "";
+				int curr_att = 0;
+				for (String a : attrs) {
+					query += " AND attr_"
+							+ a
+							+ " = "
+							+ values.get(curr_att).get(
+									attrIndexes.get(curr_att)) + "";
+					curr_att++;
+				}
+				String qquery = "INSERT INTO " + table_prefix
+						+ "reference_queries SET query='" + query
+						+ "', query_attr='"+r.referenceAttributeSets.toString()+"', query_level='" + query_level + "'";
+				statement = connect.createStatement();
+				statement.executeUpdate(qquery);
+				statement.close();
+
+				for (int i = attrIndexes.size() - 1; i >= 0; i--) {
+					if (attrIndexes.get(i) == values.get(i).size() - 1) {
+						attrIndexes.set(i, 0);
+					} else {
+						int old = values.get(i).get(attrIndexes.get(i));
+						int newV = values.get(i).get(attrIndexes.get(i) + 1);
+						isEqual = false;
+						for (Vector<Integer> v1 : r.referenceValueSets.get(i)) {
+							if (v1.contains(old) && v1.contains(newV)) {
+								isEqual = true;
+								break;
+							}
+						}
+						attrIndexes.set(i, attrIndexes.get(i) + 1);
+						break;
+					}
+				}
+				//System.out.println();
+
+				// check if equal with previous query
+				// if not equal
+				if (!isEqual) {
+					//queries.add(subqueryset);
+					//subqueryset = new Vector<String>();
+					//subqueryset.add(query);
+					query_level++;
+				} else {
+					//subqueryset.add(query);
+				}
+				// check if finished
+				boolean isFinished = true;
+				for (int i = 0; i < numAttr; i++) {
+					if (attrIndexes.get(i) < r.referenceValueSets.get(i).size() - 1) {
+						isFinished = false;
+						break;
+					}
+				}
+				if (isFinished) {
+					//if (subqueryset.size() > 0)
+						//queries.add(subqueryset);
+					break;
 				}
 			}
+
+			/*
+			 * for (int i = 0; i < numAttr; i++) { String query =
+			 * "SELECT * FROM " + table_prefix + "reference_data WHERE 1=1"; int
+			 * j = 0; for (Vector<String> attrs : r.referenceAttributeSets) {
+			 * for (String attr : attrs) { Vector<Integer> values = new
+			 * Vector<Integer>(); for (Vector<Integer> it :
+			 * r.referenceValueSets.get(j)) { values.addAll(it); } if
+			 * (values.size() <= i) query += " AND attr_" + attr + " = '" +
+			 * values.get(values.size() - 1) + "'"; else query += " AND attr_" +
+			 * attr + " = '" + values.get(i) + "'"; j++; } } queries.add(query);
+			 * }
+			 */
+		} catch (Exception ex) {
+			ex.printStackTrace();
 		}
-		return queries;
 	}
 }

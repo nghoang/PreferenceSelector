@@ -23,6 +23,7 @@ public class ReferenceSelector {
 			ReferenceSet r = new ReferenceSet();
 			r.db = db;
 			r.GenerateReferenceSet();
+			db.GenerateSelectionQueries(r);
 		}
 	}
 
