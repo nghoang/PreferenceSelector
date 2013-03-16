@@ -120,4 +120,22 @@ public class DatabaseLayer {
 			Ex.printStackTrace();
 		}
 	}
+	
+	public Vector<String> GenerateSelectionQueries(int numAttr, Vector<Vector<String>> referenceAttributeSets,
+			Vector<Vector<Integer>> referenceValues)
+	{
+		Vector<String> queries = new Vector<String>();
+		for (int i=0;i<numAttr;i++)
+		{
+			String query = "SELECT * FROM " + table_prefix + "reference_data WHERE ";
+			for (Vector<String> attrs : referenceAttributeSets)
+			{
+				for (String attr : attrs)
+				{
+					query += " attr_" + attr + " = ''";
+				}
+			}
+		}
+		return queries;
+	}
 }
