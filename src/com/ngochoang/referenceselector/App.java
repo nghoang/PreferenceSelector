@@ -3,6 +3,7 @@ package com.ngochoang.referenceselector;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Random;
 
 public class App {
 
@@ -21,6 +22,10 @@ public class App {
 	public static int number_of_returned_results;
 	
 	public static long random_seed;
+
+	public static int number_of_rules;
+	public static int min_attr_in_rule;
+	public static int max_attr_in_rule;
 	
 	public static void Init()
 	{
@@ -42,6 +47,10 @@ public class App {
     		number_of_returned_results = Integer.parseInt(prop.getProperty("number_of_returned_results"));
 
     		random_seed = Long.parseLong(prop.getProperty("random_seed"));
+
+    		number_of_rules = Integer.parseInt(prop.getProperty("number_of_rules"));
+    		min_attr_in_rule = Integer.parseInt(prop.getProperty("min_attr_in_rule"));
+    		max_attr_in_rule = Integer.parseInt(prop.getProperty("max_attr_in_rule"));
     	} catch (IOException ex) {
     		ex.printStackTrace();
         }

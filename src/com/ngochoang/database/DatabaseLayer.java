@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
+import java.util.Vector;
 
 import com.ngochoang.referenceselector.App;
 
@@ -18,7 +19,7 @@ public class DatabaseLayer {
 	ResultSet resultSet = null;
 	String table_prefix = "1";
 	Random ran = new Random(App.random_seed);
-
+	
 	public boolean Connect() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
@@ -52,7 +53,7 @@ public class DatabaseLayer {
 			}
 			resultSet.close();
 			statement.close();
-			
+
 			statement = connect.createStatement();
 			table_prefix = "ds" + counter + "_";
 			String query = "CREATE TABLE " + table_prefix + "reference_data (";
@@ -64,18 +65,20 @@ public class DatabaseLayer {
 			query += " PRIMARY KEY (`attr_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
 			statement.executeUpdate(query);
 			statement.close();
-			for(int i=0;i<App.number_of_generated_records;i++)
-			{
+			for (int i = 0; i < App.number_of_generated_records; i++) {
 				query = "INSERT INTO " + table_prefix + "reference_data SET ";
 				for (int j = 0; j < App.number_of_attributes; j++) {
-					int attr_value = ran.nextInt(App.max_value_on_attribute - App.min_value_on_attribute) + App.min_value_on_attribute;
+					int attr_value = ran.nextInt(App.max_value_on_attribute
+							- App.min_value_on_attribute)
+							+ App.min_value_on_attribute;
 					if (j == 0)
-						query += " attr_" + (j + 1) + " = "+attr_value;
+						query += " attr_" + (j + 1) + " = " + attr_value;
 					else
-						query += " ,attr_" + (j + 1) + " = "+attr_value;
+						query += " ,attr_" + (j + 1) + " = " + attr_value;
 				}
-				int price = ran.nextInt(App.max_price - App.min_price) + App.min_price;
-				query += " ,price = "+price;
+				int price = ran.nextInt(App.max_price - App.min_price)
+						+ App.min_price;
+				query += " ,price = " + price;
 				statement = connect.createStatement();
 				statement.executeUpdate(query);
 				statement.close();
@@ -84,9 +87,37 @@ public class DatabaseLayer {
 			e.printStackTrace();
 		}
 	}
-	
-	void GenenerateReference()
-	{
-		
+
+	void GenenerateReference() {
+
+	}
+
+	public void InsertReference(int numAttr, Vector<Vector<String>> referenceAttributeSets,
+			Vector<Vector<Integer>> referenceValues) {
+		try {
+			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix + "reference_rules (";
+			query += " `rule_id` int(11) NOT NULL AUTO_INCREMENT,";
+			query += " `rule_attributes` varchar(500) ";
+			for (int i = 0; i < numAttr; i++) {
+				query += ", `values_" + (i + 1) + "` varchar(500)";
+			}
+			query += ", PRIMARY KEY (`rule_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
+			statement = connect.createStatement();
+			statement.executeUpdate(query);
+			statement.close();
+
+			query = "INSERT INTO " + table_prefix + "reference_rules SET ";
+			query += " rule_attributes = '" + referenceAttributeSets.toString()
+					+ "' ";
+			for (int i = 0; i < numAttr; i++) {
+				query += ", values_" + (i + 1) + " = '"
+						+ referenceValues.get(i).toString() + "'";
+			}
+			statement = connect.createStatement();
+			statement.executeUpdate(query);
+			statement.close();
+		} catch (Exception Ex) {
+			Ex.printStackTrace();
+		}
 	}
 }
