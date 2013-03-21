@@ -26,7 +26,10 @@ public class App {
 	public static int number_of_rules;
 	public static int min_attr_in_rule;
 	public static int max_attr_in_rule;
-	
+	public static int min_customer_value_on_attribute;
+	public static int max_customer_value_on_attribute;
+	public static int attribute_grouping_rate;
+		
 	public static void Init()
 	{
 		Properties prop = new Properties();
@@ -51,6 +54,9 @@ public class App {
     		number_of_rules = Integer.parseInt(prop.getProperty("number_of_rules"));
     		min_attr_in_rule = Integer.parseInt(prop.getProperty("min_attr_in_rule"));
     		max_attr_in_rule = Integer.parseInt(prop.getProperty("max_attr_in_rule"));
+    		min_customer_value_on_attribute = Integer.parseInt(prop.getProperty("min_customer_value_on_attribute"));
+    		max_customer_value_on_attribute = Integer.parseInt(prop.getProperty("max_customer_value_on_attribute"));
+    		attribute_grouping_rate = Integer.parseInt(prop.getProperty("attribute_grouping_rate"));
     	} catch (IOException ex) {
     		ex.printStackTrace();
         }

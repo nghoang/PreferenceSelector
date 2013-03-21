@@ -20,6 +20,7 @@ public class DatabaseLayer {
 	ResultSet resultSet = null;
 	String table_prefix = "1";
 	Random ran = new Random(App.random_seed);
+	static int query_level = 0;
 
 	public boolean Connect() {
 		try {
@@ -105,7 +106,7 @@ public class DatabaseLayer {
 					+ "reference_rules (";
 			query += " `rule_id` int(11) NOT NULL AUTO_INCREMENT,";
 			query += " `rule_attributes` varchar(500) ";
-			for (int i = 0; i < numAttr; i++) {
+			for (int i = 0; i < App.max_attr_in_rule; i++) {
 				query += ", `values_" + (i + 1) + "` varchar(500)";
 			}
 			query += ", PRIMARY KEY (`rule_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
@@ -165,17 +166,24 @@ public class DatabaseLayer {
 			for (int i = 0; i < numAttr; i++)
 				attrIndexes.add(0);
 			//Vector<String> subqueryset = new Vector<String>();
-			int query_level = 0;
+			
 			while (true) {
 				boolean isEqual = false;
 				query = "";
 				int curr_att = 0;
 				for (String a : attrs) {
-					query += " AND attr_"
-							+ a
-							+ " = "
-							+ values.get(curr_att).get(
-									attrIndexes.get(curr_att)) + "";
+					if (query.equals(""))
+						query += " attr_"
+								+ a
+								+ " = "
+								+ values.get(curr_att).get(
+										attrIndexes.get(curr_att)) + "";
+					else
+						query += " AND attr_"
+								+ a
+								+ " = "
+								+ values.get(curr_att).get(
+										attrIndexes.get(curr_att)) + "";
 					curr_att++;
 				}
 				String qquery = "INSERT INTO " + table_prefix
