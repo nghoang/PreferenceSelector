@@ -17,12 +17,13 @@ public class DatabaseLayer {
 	Connection connect = null;
 	Statement statement = null;
 	PreparedStatement preparedStatement = null;
-	ResultSet resultSet = null;
+	ResultSet res = null;
 	String table_prefix = "1";
 	Random ran = new Random(App.random_seed);
 	static int query_level = 0;
 
 	public boolean Connect() {
+		table_prefix = App.db_prefix;// "ds" + counter + "_";
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			connect = DriverManager.getConnection("jdbc:mysql://" + App.db_host
@@ -38,27 +39,29 @@ public class DatabaseLayer {
 	}
 
 	public void GenerateDatabase() {
-		int counter = 1;
+		// int counter = 1;
 		try {
-			statement = connect.createStatement();
-			while (true) {
-				resultSet = statement
-						.executeQuery("SELECT COUNT(*) AS counter FROM information_schema.tables WHERE table_schema = '"
-								+ App.db_database
-								+ "' AND table_name = 'ds"
-								+ counter + "_reference_data'");
-				resultSet.next();
-				if (resultSet.getInt("counter") == 0)
-					break;
-				else
-					counter++;
-			}
-			resultSet.close();
-			statement.close();
+			//
+			// statement = connect.createStatement();
+			// while (true) {
+			// resultSet = statement
+			// .executeQuery("SELECT COUNT(*) AS counter FROM information_schema.tables WHERE table_schema = '"
+			// + App.db_database
+			// + "' AND table_name = 'ds"
+			// + counter + "_reference_data'");
+			// resultSet.next();
+			// if (resultSet.getInt("counter") == 0)
+			// break;
+			// else
+			// counter++;
+			// }
+			// resultSet.close();
+			// statement.close();
 
 			statement = connect.createStatement();
-			table_prefix = "ds" + counter + "_";
-			String query = "CREATE TABLE " + table_prefix + "reference_data (";
+			// table_prefix = App.db_prefix;//"ds" + counter + "_";
+			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
+					+ "reference_data (";
 			query += " `attr_id` int(11) NOT NULL AUTO_INCREMENT,";
 			for (int i = 0; i < App.number_of_attributes; i++) {
 				query += " `attr_" + (i + 1) + "` int(11),";
@@ -165,8 +168,8 @@ public class DatabaseLayer {
 			Vector<Integer> attrIndexes = new Vector<Integer>();
 			for (int i = 0; i < numAttr; i++)
 				attrIndexes.add(0);
-			//Vector<String> subqueryset = new Vector<String>();
-			
+			// Vector<String> subqueryset = new Vector<String>();
+
 			while (true) {
 				boolean isEqual = false;
 				query = "";
@@ -188,7 +191,9 @@ public class DatabaseLayer {
 				}
 				String qquery = "INSERT INTO " + table_prefix
 						+ "reference_queries SET query='" + query
-						+ "', query_attr='"+r.referenceAttributeSets.toString()+"', query_level='" + query_level + "'";
+						+ "', query_attr='"
+						+ r.referenceAttributeSets.toString()
+						+ "', query_level='" + query_level + "'";
 				statement = connect.createStatement();
 				statement.executeUpdate(qquery);
 				statement.close();
@@ -210,17 +215,17 @@ public class DatabaseLayer {
 						break;
 					}
 				}
-				//System.out.println();
+				// System.out.println();
 
 				// check if equal with previous query
 				// if not equal
 				if (!isEqual) {
-					//queries.add(subqueryset);
-					//subqueryset = new Vector<String>();
-					//subqueryset.add(query);
+					// queries.add(subqueryset);
+					// subqueryset = new Vector<String>();
+					// subqueryset.add(query);
 					query_level++;
 				} else {
-					//subqueryset.add(query);
+					// subqueryset.add(query);
 				}
 				// check if finished
 				boolean isFinished = true;
@@ -231,8 +236,8 @@ public class DatabaseLayer {
 					}
 				}
 				if (isFinished) {
-					//if (subqueryset.size() > 0)
-						//queries.add(subqueryset);
+					// if (subqueryset.size() > 0)
+					// queries.add(subqueryset);
 					break;
 				}
 			}
@@ -253,4 +258,76 @@ public class DatabaseLayer {
 			ex.printStackTrace();
 		}
 	}
+
+	public Vector<Integer> RunAlgorithmOne() {
+		Vector<Integer> res = new Vector<Integer>();
+		try {
+			String queryWhere = "";
+			statement = connect.createStatement();
+			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
+					+ table_prefix + "reference_queries");
+			while (resultSet.next()) {
+				if (queryWhere.equals(""))
+					queryWhere += "("+resultSet.getString("query")+")";
+				else
+					queryWhere += " OR (" + resultSet.getString("query")+")";
+			}
+			statement.close();
+			resultSet.close();
+
+			String query = "SELECT attr_id FROM "
+					+ table_prefix + "reference_data WHERE "
+					+ queryWhere;
+			statement = connect.createStatement();
+			resultSet = statement
+					.executeQuery(query);
+			while (resultSet.next()) {
+				res.add(resultSet.getInt("attr_id"));
+			}
+			statement.close();
+			resultSet.close();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return res;
+	}
+	
+	public Vector<Integer> RunAlgorithmTwo(Integer max) {
+		Vector<Integer> res = new Vector<Integer>();
+		boolean isFinished = false;
+		try {
+			statement = connect.createStatement();
+			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
+					+ table_prefix + "reference_queries ORDER BY query_id");
+			while (resultSet.next()) {
+				String query = "SELECT attr_id FROM "
+						+ table_prefix + "reference_data WHERE "
+						+ resultSet.getString("query");
+				Statement st2 = connect.createStatement();
+				ResultSet rs2 = statement.executeQuery(query);
+				while (rs2.next())
+				{
+					if (res.contains(rs2.getInt("attr_id")) == false)
+					{
+						res.add(rs2.getInt("attr_id"));
+						if (res.size() >= max)
+							isFinished = true;
+					}
+					if (isFinished)
+						break;
+				}
+				st2.close();
+				rs2.close();
+				if (isFinished)
+					break;
+			}
+			statement.close();
+			resultSet.close();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return res;
+	}
+	
+	
 }
