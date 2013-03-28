@@ -268,19 +268,17 @@ public class DatabaseLayer {
 					+ table_prefix + "reference_queries");
 			while (resultSet.next()) {
 				if (queryWhere.equals(""))
-					queryWhere += "("+resultSet.getString("query")+")";
+					queryWhere += "(" + resultSet.getString("query") + ")";
 				else
-					queryWhere += " OR (" + resultSet.getString("query")+")";
+					queryWhere += " OR (" + resultSet.getString("query") + ")";
 			}
 			statement.close();
 			resultSet.close();
 
-			String query = "SELECT attr_id FROM "
-					+ table_prefix + "reference_data WHERE "
-					+ queryWhere;
+			String query = "SELECT attr_id FROM " + table_prefix
+					+ "reference_data WHERE " + queryWhere;
 			statement = connect.createStatement();
-			resultSet = statement
-					.executeQuery(query);
+			resultSet = statement.executeQuery(query);
 			while (resultSet.next()) {
 				res.add(resultSet.getInt("attr_id"));
 			}
@@ -291,7 +289,7 @@ public class DatabaseLayer {
 		}
 		return res;
 	}
-	
+
 	public Vector<Integer> RunAlgorithmTwo(Integer max) {
 		Vector<Integer> res = new Vector<Integer>();
 		boolean isFinished = false;
@@ -300,15 +298,13 @@ public class DatabaseLayer {
 			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
 					+ table_prefix + "reference_queries ORDER BY query_id");
 			while (resultSet.next()) {
-				String query = "SELECT attr_id FROM "
-						+ table_prefix + "reference_data WHERE "
+				String query = "SELECT attr_id FROM " + table_prefix
+						+ "reference_data WHERE "
 						+ resultSet.getString("query");
 				Statement st2 = connect.createStatement();
 				ResultSet rs2 = statement.executeQuery(query);
-				while (rs2.next())
-				{
-					if (res.contains(rs2.getInt("attr_id")) == false)
-					{
+				while (rs2.next()) {
+					if (res.contains(rs2.getInt("attr_id")) == false) {
 						res.add(rs2.getInt("attr_id"));
 						if (res.size() >= max)
 							isFinished = true;
@@ -328,6 +324,101 @@ public class DatabaseLayer {
 		}
 		return res;
 	}
-	
-	
+
+	public Vector<Integer> RunAlgorithmBisection() {
+		Vector<Integer> res = new Vector<Integer>();
+		try {
+			statement = connect.createStatement();
+			ResultSet resultSet = statement
+					.executeQuery("SELECT COUNT(*) AS counter FROM "
+							+ table_prefix
+							+ "reference_queries ORDER BY query_level");
+			resultSet.next();
+			int inittotal = resultSet.getInt("counter");
+			int total = inittotal;
+			resultSet.close();
+			statement.close();
+			int limit = total/2;
+			String query = "";
+			while (limit <= inittotal)
+			{
+				query = "";
+				statement = connect.createStatement();
+				resultSet = statement
+						.executeQuery("SELECT * FROM "
+								+ table_prefix
+								+ "reference_queries ORDER BY query_level");
+				int lastPri = -1;
+				int counter = 1;
+				while (resultSet.next())
+				{
+					int curPri = resultSet.getInt("query_level");
+					if (counter > limit && lastPri != curPri)
+							break;
+					lastPri = curPri;
+					if (query.equals(""))
+						query += resultSet.getString("query");
+					else
+						query += " OR "+resultSet.getString("query");
+					counter++;
+				}
+				resultSet.close();
+				statement.close();
+
+				
+				//get products
+				Statement statementPd = connect.createStatement();
+				ResultSet resultSetPd = statementPd
+						.executeQuery("SELECT COUNT(attr_id) AS counter FROM "
+								+ table_prefix
+								+ "reference_data WHERE " + query);
+				resultSetPd.next();
+				int resultCounter = resultSetPd.getInt("counter");
+				resultSetPd.close();
+				resultSetPd.close();
+				
+				if (resultCounter < App.number_of_returned_results)
+				{
+					if (limit == total)
+						break;
+					int newlimit = (int)Math.ceil((total + limit)/2D);
+					if (newlimit == limit)
+					{
+						break;
+					}
+					limit = newlimit;
+				}
+				else if (resultCounter > App.number_of_returned_results)
+				{
+					if (limit <= 1)
+						break;
+					if (limit == total)
+						break;
+					int newlimit = limit/2;
+					if (newlimit == limit)
+					{
+						break;
+					}
+					total = limit;
+					limit = newlimit;
+				}
+			}
+			if (!query.equals(""))
+			{
+				Statement statementPd = connect.createStatement();
+				ResultSet resultSetPd = statementPd
+						.executeQuery("SELECT attr_id FROM "
+								+ table_prefix
+								+ "reference_data WHERE " + query);
+				while(resultSetPd.next())
+					res.add(resultSetPd.getInt("attr_id"));
+				resultSetPd.close();
+				resultSetPd.close();
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return res;
+	}
+
 }

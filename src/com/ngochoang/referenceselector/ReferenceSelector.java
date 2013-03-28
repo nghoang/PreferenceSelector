@@ -2,6 +2,7 @@ package com.ngochoang.referenceselector;
 
 import java.util.Vector;
 
+import com.ngochoang.algorithm.AlgorithmBisection;
 import com.ngochoang.algorithm.AlgorithmOne;
 import com.ngochoang.algorithm.AlgorithmTwo;
 import com.ngochoang.database.DatabaseLayer;
@@ -30,17 +31,16 @@ public class ReferenceSelector {
 				db.GenerateSelectionQueries(r);
 			}
 		} else if (App.step.equals("run_algorithm")) {
-			if (App.algorithm.equals("one"))
-			{
+			if (App.algorithm.equals("one")) {
 				AlgorithmOne al = new AlgorithmOne(db);
 				al.Process();
+			} else if (App.algorithm.equals("two")) {
+				AlgorithmTwo al = new AlgorithmTwo(db);
+				al.Process();
+			} else if (App.algorithm.equals("bisec")) {
+				AlgorithmBisection al = new AlgorithmBisection(db);
+				al.Process();
 			}
-			else 
-				if (App.algorithm.equals("two"))
-				{
-					AlgorithmTwo al = new AlgorithmTwo(db);
-					al.Process();
-				}
 		}
 	}
 
