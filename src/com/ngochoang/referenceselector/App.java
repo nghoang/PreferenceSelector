@@ -14,6 +14,7 @@ public class App {
 	public static String db_prefix;
 	public static String step;
 	public static String algorithm;
+	public static int sample_data_size;
 	
 	public static int number_of_attributes;
 	public static int number_of_generated_records;
@@ -45,6 +46,8 @@ public class App {
     		db_prefix = prop.getProperty("db_prefix");
     		step = prop.getProperty("step");
     		algorithm = prop.getProperty("algorithm");
+    		
+    		sample_data_size = Integer.parseInt(prop.getProperty("sample_data_size"));
 
     		number_of_attributes = Integer.parseInt(prop.getProperty("number_of_attributes"));
     		number_of_generated_records = Integer.parseInt(prop.getProperty("number_of_generated_records"));

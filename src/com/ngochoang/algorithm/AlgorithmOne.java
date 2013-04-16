@@ -14,7 +14,7 @@ public class AlgorithmOne {
 	
 	public void Process()
 	{
-		Vector<Integer> products = db.RunAlgorithmOne();
-		System.out.println(products.toString());
+		Vector<Integer> attributes = db.RunAlgorithmOne();
+		System.out.println(attributes.toString());
 	}
 }

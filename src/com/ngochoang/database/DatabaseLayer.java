@@ -6,11 +6,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Vector;
 
 import com.ngochoang.referenceselector.App;
 import com.ngochoang.referenceselector.ReferenceSet;
+import com.ngochoang.referenceselector.UsefulFunctions;
 
 //this class contains all the methods to interact with database
 public class DatabaseLayer {
@@ -21,6 +23,8 @@ public class DatabaseLayer {
 	String table_prefix = "1";
 	Random ran = new Random(App.random_seed);
 	static int query_level = 0;
+	public ResultSet ruleSet;
+	public int ruleCount = 0;
 
 	public boolean Connect() {
 		table_prefix = App.db_prefix;// "ds" + counter + "_";
@@ -118,11 +122,16 @@ public class DatabaseLayer {
 			statement.close();
 
 			query = "INSERT INTO " + table_prefix + "reference_rules SET ";
-			query += " rule_attributes = '" + referenceAttributeSets.toString()
+			query += " rule_attributes = '"
+					+ UsefulFunctions
+							.ConvertVectorToString2(referenceAttributeSets)
 					+ "' ";
 			for (int i = 0; i < numAttr; i++) {
-				query += ", values_" + (i + 1) + " = '"
-						+ referenceValues.get(i).toString() + "'";
+				query += ", values_"
+						+ (i + 1)
+						+ " = '"
+						+ UsefulFunctions.ConvertVectorToString(referenceValues
+								.get(i)) + "'";
 			}
 			statement = connect.createStatement();
 			statement.executeUpdate(query);
@@ -144,119 +153,175 @@ public class DatabaseLayer {
 			statement = connect.createStatement();
 			statement.executeUpdate(query);
 			statement.close();
-
-			int numAttr = 0;
+			
+			query = "DELETE FROM " + table_prefix
+					+ "reference_queries";
+			statement = connect.createStatement();
+			statement.executeUpdate(query);
+			statement.close();
+			
+			Vector<Vector<String>> rowQueries = new Vector<Vector<String>>();
+			int curAtt = 0;
 			for (Vector<String> t : r.referenceAttributeSets) {
-				numAttr += t.size();
-			}
-			Vector<String> attrs = new Vector<String>();
-			Vector<Vector<Integer>> values = new Vector<Vector<Integer>>();
-			System.out.println("Attributes:");
-			System.out.println(r.referenceAttributeSets.toString());
-			for (Vector<String> ats : r.referenceAttributeSets) {
-				attrs.addAll(ats);
-			}
-			System.out.println("Attribute Values:");
-			for (Vector<Vector<Integer>> v1 : r.referenceValueSets) {
-				Vector<Integer> v3 = new Vector<Integer>();
-				System.out.println(v1.toString());
-				for (Vector<Integer> v2 : v1) {
-					v3.addAll(v2);
-				}
-				values.add(v3);
-			}
-			Vector<Integer> attrIndexes = new Vector<Integer>();
-			for (int i = 0; i < numAttr; i++)
-				attrIndexes.add(0);
-			// Vector<String> subqueryset = new Vector<String>();
-
-			while (true) {
-				boolean isEqual = false;
 				query = "";
-				int curr_att = 0;
-				for (String a : attrs) {
-					if (query.equals(""))
-						query += " attr_"
-								+ a
-								+ " = "
-								+ values.get(curr_att).get(
-										attrIndexes.get(curr_att)) + "";
-					else
-						query += " AND attr_"
-								+ a
-								+ " = "
-								+ values.get(curr_att).get(
-										attrIndexes.get(curr_att)) + "";
-					curr_att++;
-				}
-				String qquery = "INSERT INTO " + table_prefix
-						+ "reference_queries SET query='" + query
-						+ "', query_attr='"
-						+ r.referenceAttributeSets.toString()
-						+ "', query_level='" + query_level + "'";
-				statement = connect.createStatement();
-				statement.executeUpdate(qquery);
-				statement.close();
-
-				for (int i = attrIndexes.size() - 1; i >= 0; i--) {
-					if (attrIndexes.get(i) == values.get(i).size() - 1) {
-						attrIndexes.set(i, 0);
-					} else {
-						int old = values.get(i).get(attrIndexes.get(i));
-						int newV = values.get(i).get(attrIndexes.get(i) + 1);
-						isEqual = false;
-						for (Vector<Integer> v1 : r.referenceValueSets.get(i)) {
-							if (v1.contains(old) && v1.contains(newV)) {
-								isEqual = true;
-								break;
-							}
+				if (t.size() == 1)//no grouped attributes
+				{
+					Vector<String> rowQuery = new Vector<String>();
+					for (Vector<Integer> values : r.referenceValueSets.get(curAtt))
+					{
+						if (values.size() == 1)
+						{
+							query = " attr_" + t.get(0) + " = '"+values.get(0)+"' ";
 						}
-						attrIndexes.set(i, attrIndexes.get(i) + 1);
-						break;
+						else
+						{
+							String orquery = "";
+							for (Integer subt : values)
+							{
+								if (orquery.equals(""))
+									orquery += " attr_" + t.get(0) + " = '"+subt+"' ";
+								else
+									orquery += " OR attr_" + t.get(0) + " = '"+subt+"' ";
+							}
+							
+							query = " ("+orquery+") ";
+						}
+						rowQuery.add(query);
 					}
+					rowQueries.add(rowQuery);
+					curAtt++;
 				}
-				// System.out.println();
-
-				// check if equal with previous query
-				// if not equal
-				if (!isEqual) {
-					// queries.add(subqueryset);
-					// subqueryset = new Vector<String>();
-					// subqueryset.add(query);
-					query_level++;
-				} else {
-					// subqueryset.add(query);
-				}
-				// check if finished
-				boolean isFinished = true;
-				for (int i = 0; i < numAttr; i++) {
-					if (attrIndexes.get(i) < r.referenceValueSets.get(i).size() - 1) {
-						isFinished = false;
-						break;
-					}
-				}
-				if (isFinished) {
-					// if (subqueryset.size() > 0)
-					// queries.add(subqueryset);
-					break;
+				else
+				{
+					Vector<Vector<Vector<Integer>>> values = new Vector<Vector<Vector<Integer>>>();
+					int[] indexes = new int[t.size()];
+					for (int i=0;i<indexes.length;i++)
+						indexes[i] = 0;
+					for (int i=curAtt;i<curAtt + t.size();i++)
+						values.add(r.referenceValueSets.get(i));
+					
+					Vector<String> rowQuery = GenerateQueryGroup(t,values,indexes);
+					rowQueries.add(rowQuery);
+					curAtt += t.size();
 				}
 			}
-
-			/*
-			 * for (int i = 0; i < numAttr; i++) { String query =
-			 * "SELECT * FROM " + table_prefix + "reference_data WHERE 1=1"; int
-			 * j = 0; for (Vector<String> attrs : r.referenceAttributeSets) {
-			 * for (String attr : attrs) { Vector<Integer> values = new
-			 * Vector<Integer>(); for (Vector<Integer> it :
-			 * r.referenceValueSets.get(j)) { values.addAll(it); } if
-			 * (values.size() <= i) query += " AND attr_" + attr + " = '" +
-			 * values.get(values.size() - 1) + "'"; else query += " AND attr_" +
-			 * attr + " = '" + values.get(i) + "'"; j++; } } queries.add(query);
-			 * }
-			 */
+			
+			/*for (Vector<String> r1 : rowQueries)
+			{
+				boolean isFirst = true;
+				for (String r2 : r1)
+				{
+					if (r2.equals(""))
+						continue;
+					if (isFirst)
+						System.out.print(r2);
+					else
+						System.out.print(" -> " + r2);
+					isFirst = false;
+				}
+				System.out.println();
+			}*/
+			int[] nindexes= new int[rowQueries.size()];
+			for (int i=0;i<nindexes.length;i++)
+				nindexes[i] = 0;
+			
+			while (true)
+			{
+				
+			}
+			
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+
+	private Vector<String> GenerateQueryGroup(Vector<String> t,
+			Vector<Vector<Vector<Integer>>> values, int[] indexes) {
+		Vector<String> rowQuery = new Vector<String>();
+		Vector<Vector<int[]>> reservedIndexes = new Vector<Vector<int[]>>();
+		Vector<int[]> reversedIndex = new Vector<int[]>();
+		reversedIndex.add(indexes);
+		reservedIndexes.add(reversedIndex);
+		while (true)
+		{
+			boolean isFinished = true;
+			int loopto = reversedIndex.size();
+			Vector<int[]> prereversedIndex = reversedIndex;
+			reversedIndex = new Vector<int[]>();
+			for (int i=0;i<loopto;i++)
+			{
+				for (int j=0;j<prereversedIndex.get(i).length;j++)
+				{
+					if (prereversedIndex.get(i)[j] <= values.get(j).size() - 2)
+					{
+						int[] newV = new int[indexes.length];
+						for (int h=0;h<prereversedIndex.get(i).length;h++)
+							newV[h] = prereversedIndex.get(i)[h];
+						newV[j]++;
+						boolean isContain = false;
+						for (int[] temp : reversedIndex)
+							if (ArraystoString(temp).equals(ArraystoString(newV)))
+								isContain = true;
+						if (isContain == false)
+						{
+							reversedIndex.add(newV);
+							isFinished = false;
+						}
+					}
+				}
+			}
+			reservedIndexes.add(reversedIndex);
+			if (isFinished == true)
+				break;
+		}
+		for (Vector<int[]>  inds : reservedIndexes)
+		{
+			String rowQ = "";
+			for (int[] ind : inds){
+				String q = "";
+				for (int i=0;i<t.size();i++)
+				{
+					if (values.get(i).get(ind[i]).size() == 1)
+					{	
+						if (q.equals(""))
+							q += " attr_" + t.get(i) + " = '"+values.get(i).get(ind[i]).get(0)+"' ";
+						else
+							q += " AND attr_" + t.get(i) + " = '"+values.get(i).get(ind[i]).get(0)+"' ";
+					}
+					else
+					{
+						String orquery = "";
+						for (Integer subt : values.get(i).get(ind[i]))
+						{
+							if (orquery.equals(""))
+								orquery += " attr_" + t + " = '"+subt+"' ";
+							else
+								orquery += " OR attr_" + t + " = '"+subt+"' ";
+						}
+						if (q.equals(""))
+							q += " ("+orquery+") ";
+						else
+							q += " AND ("+orquery+") ";
+					}
+				}
+				if (rowQ.equals(""))
+					rowQ += " ("+q+") ";
+				else
+					rowQ += " OR ("+q+")";
+			}
+			rowQuery.add(rowQ);
+		}
+		return rowQuery;
+	}
+
+	private String ArraystoString(int[] newV) {
+		String t = "";
+		for (int i : newV)
+			if (t.equals(""))
+				t += i;
+			else
+				t += "," + i;
+		return t;
 	}
 
 	public Vector<Integer> RunAlgorithmOne() {
@@ -338,79 +403,68 @@ public class DatabaseLayer {
 			int total = inittotal;
 			resultSet.close();
 			statement.close();
-			int limit = total/2;
+			int limit = total / 2;
 			String query = "";
-			while (limit <= inittotal)
-			{
+			while (limit <= inittotal) {
 				query = "";
 				statement = connect.createStatement();
-				resultSet = statement
-						.executeQuery("SELECT * FROM "
-								+ table_prefix
-								+ "reference_queries ORDER BY query_level");
+				resultSet = statement.executeQuery("SELECT * FROM "
+						+ table_prefix
+						+ "reference_queries ORDER BY query_level");
 				int lastPri = -1;
 				int counter = 1;
-				while (resultSet.next())
-				{
+				while (resultSet.next()) {
 					int curPri = resultSet.getInt("query_level");
 					if (counter > limit && lastPri != curPri)
-							break;
+						break;
 					lastPri = curPri;
 					if (query.equals(""))
 						query += resultSet.getString("query");
 					else
-						query += " OR "+resultSet.getString("query");
+						query += " OR " + resultSet.getString("query");
 					counter++;
 				}
 				resultSet.close();
 				statement.close();
 
-				
-				//get products
+				// get products
 				Statement statementPd = connect.createStatement();
 				ResultSet resultSetPd = statementPd
 						.executeQuery("SELECT COUNT(attr_id) AS counter FROM "
-								+ table_prefix
-								+ "reference_data WHERE " + query);
+								+ table_prefix + "reference_data WHERE "
+								+ query);
 				resultSetPd.next();
 				int resultCounter = resultSetPd.getInt("counter");
 				resultSetPd.close();
 				resultSetPd.close();
-				
-				if (resultCounter < App.number_of_returned_results)
-				{
+
+				if (resultCounter < App.number_of_returned_results) {
 					if (limit == total)
 						break;
-					int newlimit = (int)Math.ceil((total + limit)/2D);
-					if (newlimit == limit)
-					{
+					int newlimit = (int) Math.ceil((total + limit) / 2D);
+					if (newlimit == limit) {
 						break;
 					}
 					limit = newlimit;
-				}
-				else if (resultCounter > App.number_of_returned_results)
-				{
+				} else if (resultCounter > App.number_of_returned_results) {
 					if (limit <= 1)
 						break;
 					if (limit == total)
 						break;
-					int newlimit = limit/2;
-					if (newlimit == limit)
-					{
+					int newlimit = limit / 2;
+					if (newlimit == limit) {
 						break;
 					}
 					total = limit;
 					limit = newlimit;
 				}
 			}
-			if (!query.equals(""))
-			{
+			if (!query.equals("")) {
 				Statement statementPd = connect.createStatement();
 				ResultSet resultSetPd = statementPd
-						.executeQuery("SELECT attr_id FROM "
-								+ table_prefix
+						.executeQuery("SELECT attr_id FROM " + table_prefix
 								+ "reference_data WHERE " + query);
-				while(resultSetPd.next())
+				while (resultSetPd.next())
 					res.add(resultSetPd.getInt("attr_id"));
 				resultSetPd.close();
 				resultSetPd.close();
@@ -421,4 +475,139 @@ public class DatabaseLayer {
 		return res;
 	}
 
+	public boolean FetchReferenceResults() {
+		Statement statementPd;
+		try {
+			statementPd = connect.createStatement();
+			ResultSet resultSetPd = statementPd
+					.executeQuery("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = 'reference' AND table_name = '"
+							+ table_prefix + "reference_rules+'");
+			statementPd.close();
+			resultSetPd.next();
+			ruleCount = resultSetPd.getInt(0);
+			statementPd = connect.createStatement();
+			ruleSet = statementPd.executeQuery("SELECT * FROM " + table_prefix
+					+ "reference_rules");
+			statementPd.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+
+	public void CreateSampleDB(int sample_data_size) {
+		String where = "";
+		Random ran = new Random();
+		try {
+			statement = connect.createStatement();
+			int ranAttId = ran.nextInt(App.number_of_attributes) + 1;
+			int ranAttVl = ran.nextInt(App.max_value_on_attribute
+					- App.min_value_on_attribute)
+					+ App.min_value_on_attribute;
+			ResultSet resultSet = statement
+					.executeQuery("SELECT COUNT(*) AS counter FROM "
+							+ table_prefix + "reference_data WHERE attr_"
+							+ ranAttId + " = '" + ranAttVl + "'");
+			int counter = resultSet.getInt("counter");
+			if (counter > sample_data_size)
+			{}
+			else
+			{}
+			statement.close();
+			resultSet.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public Vector<Integer> RunAlgorithmThree(int max) {
+		Vector<Integer> res = new Vector<Integer>();
+		boolean isFinished = false;
+		String where = "";
+		try {
+			statement = connect.createStatement();
+			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
+					+ table_prefix + "reference_queries ORDER BY query_id");
+			while (resultSet.next()) {
+				if (where.equals(""))
+					where = "("+resultSet.getString("query")+")";
+				else
+					where += " AND (" + resultSet.getString("query") + ")";
+				String query = "SELECT attr_id FROM " + table_prefix
+						+ "reference_data WHERE "
+						+ where;
+				Statement st2 = connect.createStatement();
+				ResultSet rs2 = statement.executeQuery(query);
+				while (rs2.next()) {
+					if (res.contains(rs2.getInt("attr_id")) == false) {
+						res.add(rs2.getInt("attr_id"));
+						if (res.size() >= max)
+							isFinished = true;
+					}
+					if (isFinished)
+						break;
+				}
+				st2.close();
+				rs2.close();
+				if (isFinished)
+					break;
+			}
+			statement.close();
+			resultSet.close();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return res;
+	}
+
+	public void GenerateSelectionQueries() {
+		try
+		{
+			Statement st = connect.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM "+table_prefix+"reference_rules");
+			ReferenceSet r = new ReferenceSet();
+			while (rs.next())
+			{
+				Vector<Vector<String>> attrs = new Vector<Vector<String>>();
+				Vector<Vector<Vector<Integer>>> attrvals = new Vector<Vector<Vector<Integer>>>();
+				String t = rs.getString("rule_attributes");
+				int Attrs = 0;
+				for (String i : t.split(";"))
+				{
+					Vector<String> t2 = new Vector<String>();
+					for (String j : i.split(","))
+					{
+						t2.add(j);
+						Attrs++;
+					}
+					attrs.add(t2);
+				}
+				
+				for (int i=1;i<= Attrs;i++)
+				{
+					Vector<Vector<Integer>> tt = new Vector<Vector<Integer>>();
+					t = rs.getString("values_" + i);
+					for (String j : t.split(";"))
+					{
+						Vector<Integer> t3 = new Vector<Integer>();
+						for (String k : j.split(","))
+							t3.add(Integer.parseInt(k));
+						tt.add(t3);
+					}
+					attrvals.add(tt);
+				}
+				r.referenceAttributeSets = attrs;
+				r.referenceValueSets = attrvals;
+				GenerateSelectionQueries(r);
+			}
+			rs.close();
+			st.close();
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
 }
