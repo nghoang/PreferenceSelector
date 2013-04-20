@@ -206,7 +206,7 @@ public class DatabaseLayer {
 				}
 			}
 			
-			/*for (Vector<String> r1 : rowQueries)
+			for (Vector<String> r1 : rowQueries)
 			{
 				boolean isFirst = true;
 				for (String r2 : r1)
@@ -220,14 +220,56 @@ public class DatabaseLayer {
 					isFirst = false;
 				}
 				System.out.println();
-			}*/
+			}
 			int[] nindexes= new int[rowQueries.size()];
 			for (int i=0;i<nindexes.length;i++)
 				nindexes[i] = 0;
 			
+			int level = 0;
 			while (true)
 			{
+				boolean isFinished = false;
+				String insertingQuery = "";
+				for (int h=0;h<rowQueries.size();h++)
+				{
+					if (insertingQuery.equals(""))
+						insertingQuery += rowQueries.get(h).get(nindexes[h]);
+					else
+						insertingQuery += " AND (" + rowQueries.get(h).get(nindexes[h]) + ")";
 				
+					if (h == rowQueries.size() - 1)
+					{
+						
+						for (int u=nindexes.length - 1;u>= 0;u--)
+						{
+							if (nindexes[u] >= rowQueries.get(u).size() - 1)
+							{
+								nindexes[u] = 0;
+								if (u == 0)
+								{
+									isFinished = true;
+									break;
+								}
+								else
+									nindexes[u-1] = nindexes[u-1] + 1;
+							}
+							else
+							{
+								nindexes[u] = nindexes[u] + 1;
+								break;
+							}
+						}
+					}
+				}
+				System.out.println(insertingQuery);
+				query = "INSERT INTO " + table_prefix
+						+ "reference_queries SET query='"+insertingQuery.replace("'", "''")+"', query_attr='"+r.referenceAttributeSets.toString()+"', query_level='"+level+"'";
+				level++;
+				statement = connect.createStatement();
+				statement.executeUpdate(query);
+				statement.close();
+				if (isFinished)
+					break;
 			}
 			
 		} catch (Exception ex) {
@@ -309,7 +351,8 @@ public class DatabaseLayer {
 				else
 					rowQ += " OR ("+q+")";
 			}
-			rowQuery.add(rowQ);
+			if (rowQ.equals("") == false)
+				rowQuery.add(rowQ);
 		}
 		return rowQuery;
 	}
@@ -405,12 +448,14 @@ public class DatabaseLayer {
 			statement.close();
 			int limit = total / 2;
 			String query = "";
+			int from  = 0;
 			while (limit <= inittotal) {
 				query = "";
 				statement = connect.createStatement();
 				resultSet = statement.executeQuery("SELECT * FROM "
 						+ table_prefix
-						+ "reference_queries ORDER BY query_level");
+						+ "reference_queries ORDER BY query_level " +
+						"LIMIT "+from+","+limit);
 				int lastPri = -1;
 				int counter = 1;
 				while (resultSet.next()) {
@@ -434,14 +479,15 @@ public class DatabaseLayer {
 								+ table_prefix + "reference_data WHERE "
 								+ query);
 				resultSetPd.next();
-				int resultCounter = resultSetPd.getInt("counter");
+				int resultCounter = res.size() + resultSetPd.getInt("counter");
 				resultSetPd.close();
 				resultSetPd.close();
 
 				if (resultCounter < App.number_of_returned_results) {
+					from = from + limit;
 					if (limit == total)
 						break;
-					int newlimit = (int) Math.ceil((total + limit) / 2D);
+					int newlimit = (int) Math.ceil(limit / 2D);
 					if (newlimit == limit) {
 						break;
 					}
