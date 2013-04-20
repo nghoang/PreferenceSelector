@@ -74,6 +74,20 @@ public class DatabaseLayer {
 			query += " PRIMARY KEY (`attr_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
 			statement.executeUpdate(query);
 			statement.close();
+
+			statement = connect.createStatement();
+			// table_prefix = App.db_prefix;//"ds" + counter + "_";
+			query = "CREATE TABLE IF NOT EXISTS " + table_prefix
+					+ "reference_data_sample (";
+			query += " `attr_id` int(11) NOT NULL AUTO_INCREMENT,";
+			for (int i = 0; i < App.number_of_attributes; i++) {
+				query += " `attr_" + (i + 1) + "` int(11),";
+			}
+			query += " `price` int(11),";
+			query += " PRIMARY KEY (`attr_id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1";
+			statement.executeUpdate(query);
+			statement.close();
+
 			for (int i = 0; i < App.number_of_generated_records; i++) {
 				query = "INSERT INTO " + table_prefix + "reference_data SET ";
 				for (int j = 0; j < App.number_of_attributes; j++) {
@@ -153,64 +167,59 @@ public class DatabaseLayer {
 			statement = connect.createStatement();
 			statement.executeUpdate(query);
 			statement.close();
-			
-			query = "DELETE FROM " + table_prefix
-					+ "reference_queries";
+
+			query = "DELETE FROM " + table_prefix + "reference_queries";
 			statement = connect.createStatement();
 			statement.executeUpdate(query);
 			statement.close();
-			
+
 			Vector<Vector<String>> rowQueries = new Vector<Vector<String>>();
 			int curAtt = 0;
 			for (Vector<String> t : r.referenceAttributeSets) {
 				query = "";
-				if (t.size() == 1)//no grouped attributes
+				if (t.size() == 1)// no grouped attributes
 				{
 					Vector<String> rowQuery = new Vector<String>();
-					for (Vector<Integer> values : r.referenceValueSets.get(curAtt))
-					{
-						if (values.size() == 1)
-						{
-							query = " attr_" + t.get(0) + " = '"+values.get(0)+"' ";
-						}
-						else
-						{
+					for (Vector<Integer> values : r.referenceValueSets
+							.get(curAtt)) {
+						if (values.size() == 1) {
+							query = " attr_" + t.get(0) + " = '"
+									+ values.get(0) + "' ";
+						} else {
 							String orquery = "";
-							for (Integer subt : values)
-							{
+							for (Integer subt : values) {
 								if (orquery.equals(""))
-									orquery += " attr_" + t.get(0) + " = '"+subt+"' ";
+									orquery += " attr_" + t.get(0) + " = '"
+											+ subt + "' ";
 								else
-									orquery += " OR attr_" + t.get(0) + " = '"+subt+"' ";
+									orquery += " OR attr_" + t.get(0) + " = '"
+											+ subt + "' ";
 							}
-							
-							query = " ("+orquery+") ";
+
+							query = " (" + orquery + ") ";
 						}
 						rowQuery.add(query);
 					}
 					rowQueries.add(rowQuery);
 					curAtt++;
-				}
-				else
-				{
+				} else {
 					Vector<Vector<Vector<Integer>>> values = new Vector<Vector<Vector<Integer>>>();
 					int[] indexes = new int[t.size()];
-					for (int i=0;i<indexes.length;i++)
+					for (int i = 0; i < indexes.length; i++)
 						indexes[i] = 0;
-					for (int i=curAtt;i<curAtt + t.size();i++)
+					for (int i = curAtt; i < curAtt + t.size(); i++)
 						values.add(r.referenceValueSets.get(i));
-					
-					Vector<String> rowQuery = GenerateQueryGroup(t,values,indexes);
+
+					Vector<String> rowQuery = GenerateQueryGroup(t, values,
+							indexes);
 					rowQueries.add(rowQuery);
 					curAtt += t.size();
 				}
 			}
-			
-			for (Vector<String> r1 : rowQueries)
-			{
+
+			for (Vector<String> r1 : rowQueries) {
 				boolean isFirst = true;
-				for (String r2 : r1)
-				{
+				for (String r2 : r1) {
 					if (r2.equals(""))
 						continue;
 					if (isFirst)
@@ -221,40 +230,32 @@ public class DatabaseLayer {
 				}
 				System.out.println();
 			}
-			int[] nindexes= new int[rowQueries.size()];
-			for (int i=0;i<nindexes.length;i++)
+			int[] nindexes = new int[rowQueries.size()];
+			for (int i = 0; i < nindexes.length; i++)
 				nindexes[i] = 0;
-			
+
 			int level = 0;
-			while (true)
-			{
+			while (true) {
 				boolean isFinished = false;
 				String insertingQuery = "";
-				for (int h=0;h<rowQueries.size();h++)
-				{
+				for (int h = 0; h < rowQueries.size(); h++) {
 					if (insertingQuery.equals(""))
 						insertingQuery += rowQueries.get(h).get(nindexes[h]);
 					else
-						insertingQuery += " AND (" + rowQueries.get(h).get(nindexes[h]) + ")";
-				
-					if (h == rowQueries.size() - 1)
-					{
-						
-						for (int u=nindexes.length - 1;u>= 0;u--)
-						{
-							if (nindexes[u] >= rowQueries.get(u).size() - 1)
-							{
+						insertingQuery += " AND ("
+								+ rowQueries.get(h).get(nindexes[h]) + ")";
+
+					if (h == rowQueries.size() - 1) {
+
+						for (int u = nindexes.length - 1; u >= 0; u--) {
+							if (nindexes[u] >= rowQueries.get(u).size() - 1) {
 								nindexes[u] = 0;
-								if (u == 0)
-								{
+								if (u == 0) {
 									isFinished = true;
 									break;
-								}
-								else
-									nindexes[u-1] = nindexes[u-1] + 1;
-							}
-							else
-							{
+								} else
+									nindexes[u - 1] = nindexes[u - 1] + 1;
+							} else {
 								nindexes[u] = nindexes[u] + 1;
 								break;
 							}
@@ -263,7 +264,10 @@ public class DatabaseLayer {
 				}
 				System.out.println(insertingQuery);
 				query = "INSERT INTO " + table_prefix
-						+ "reference_queries SET query='"+insertingQuery.replace("'", "''")+"', query_attr='"+r.referenceAttributeSets.toString()+"', query_level='"+level+"'";
+						+ "reference_queries SET query='"
+						+ insertingQuery.replace("'", "''") + "', query_attr='"
+						+ r.referenceAttributeSets.toString()
+						+ "', query_level='" + level + "'";
 				level++;
 				statement = connect.createStatement();
 				statement.executeUpdate(query);
@@ -271,7 +275,7 @@ public class DatabaseLayer {
 				if (isFinished)
 					break;
 			}
-			
+
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -284,28 +288,24 @@ public class DatabaseLayer {
 		Vector<int[]> reversedIndex = new Vector<int[]>();
 		reversedIndex.add(indexes);
 		reservedIndexes.add(reversedIndex);
-		while (true)
-		{
+		while (true) {
 			boolean isFinished = true;
 			int loopto = reversedIndex.size();
 			Vector<int[]> prereversedIndex = reversedIndex;
 			reversedIndex = new Vector<int[]>();
-			for (int i=0;i<loopto;i++)
-			{
-				for (int j=0;j<prereversedIndex.get(i).length;j++)
-				{
-					if (prereversedIndex.get(i)[j] <= values.get(j).size() - 2)
-					{
+			for (int i = 0; i < loopto; i++) {
+				for (int j = 0; j < prereversedIndex.get(i).length; j++) {
+					if (prereversedIndex.get(i)[j] <= values.get(j).size() - 2) {
 						int[] newV = new int[indexes.length];
-						for (int h=0;h<prereversedIndex.get(i).length;h++)
+						for (int h = 0; h < prereversedIndex.get(i).length; h++)
 							newV[h] = prereversedIndex.get(i)[h];
 						newV[j]++;
 						boolean isContain = false;
 						for (int[] temp : reversedIndex)
-							if (ArraystoString(temp).equals(ArraystoString(newV)))
+							if (ArraystoString(temp).equals(
+									ArraystoString(newV)))
 								isContain = true;
-						if (isContain == false)
-						{
+						if (isContain == false) {
 							reversedIndex.add(newV);
 							isFinished = false;
 						}
@@ -316,40 +316,37 @@ public class DatabaseLayer {
 			if (isFinished == true)
 				break;
 		}
-		for (Vector<int[]>  inds : reservedIndexes)
-		{
+		for (Vector<int[]> inds : reservedIndexes) {
 			String rowQ = "";
-			for (int[] ind : inds){
+			for (int[] ind : inds) {
 				String q = "";
-				for (int i=0;i<t.size();i++)
-				{
-					if (values.get(i).get(ind[i]).size() == 1)
-					{	
+				for (int i = 0; i < t.size(); i++) {
+					if (values.get(i).get(ind[i]).size() == 1) {
 						if (q.equals(""))
-							q += " attr_" + t.get(i) + " = '"+values.get(i).get(ind[i]).get(0)+"' ";
+							q += " attr_" + t.get(i) + " = '"
+									+ values.get(i).get(ind[i]).get(0) + "' ";
 						else
-							q += " AND attr_" + t.get(i) + " = '"+values.get(i).get(ind[i]).get(0)+"' ";
-					}
-					else
-					{
+							q += " AND attr_" + t.get(i) + " = '"
+									+ values.get(i).get(ind[i]).get(0) + "' ";
+					} else {
 						String orquery = "";
-						for (Integer subt : values.get(i).get(ind[i]))
-						{
+						for (Integer subt : values.get(i).get(ind[i])) {
 							if (orquery.equals(""))
-								orquery += " attr_" + t + " = '"+subt+"' ";
+								orquery += " attr_" + t.get(i) + " = '" + subt + "' ";
 							else
-								orquery += " OR attr_" + t + " = '"+subt+"' ";
+								orquery += " OR attr_" + t.get(i) + " = '" + subt
+										+ "' ";
 						}
 						if (q.equals(""))
-							q += " ("+orquery+") ";
+							q += " (" + orquery + ") ";
 						else
-							q += " AND ("+orquery+") ";
+							q += " AND (" + orquery + ") ";
 					}
 				}
 				if (rowQ.equals(""))
-					rowQ += " ("+q+") ";
+					rowQ += " (" + q + ") ";
 				else
-					rowQ += " OR ("+q+")";
+					rowQ += " OR (" + q + ")";
 			}
 			if (rowQ.equals("") == false)
 				rowQuery.add(rowQ);
@@ -410,7 +407,7 @@ public class DatabaseLayer {
 						+ "reference_data WHERE "
 						+ resultSet.getString("query");
 				Statement st2 = connect.createStatement();
-				ResultSet rs2 = statement.executeQuery(query);
+				ResultSet rs2 = st2.executeQuery(query);
 				while (rs2.next()) {
 					if (res.contains(rs2.getInt("attr_id")) == false) {
 						res.add(rs2.getInt("attr_id"));
@@ -448,14 +445,14 @@ public class DatabaseLayer {
 			statement.close();
 			int limit = total / 2;
 			String query = "";
-			int from  = 0;
+			int from = 0;
 			while (limit <= inittotal) {
 				query = "";
 				statement = connect.createStatement();
 				resultSet = statement.executeQuery("SELECT * FROM "
 						+ table_prefix
-						+ "reference_queries ORDER BY query_level " +
-						"LIMIT "+from+","+limit);
+						+ "reference_queries ORDER BY query_level " + "LIMIT "
+						+ from + "," + limit);
 				int lastPri = -1;
 				int counter = 1;
 				while (resultSet.next()) {
@@ -542,30 +539,76 @@ public class DatabaseLayer {
 		return true;
 	}
 
-	public void CreateSampleDB(int sample_data_size) {
-		String where = "";
-		Random ran = new Random();
+	public void CreateSampleDB(int sample_data_size, int sample_data_size_step) {
 		try {
+			String sq = "";
+
+			do {
+				String where = "";
+				boolean lastCheck = true;
+				while (true) {
+					Random ran = new Random();
+
+					statement = connect.createStatement();
+					int ranAttId = ran.nextInt(App.number_of_attributes) + 1;
+					int ranAttVl = ran.nextInt(App.max_value_on_attribute
+							- App.min_value_on_attribute)
+							+ App.min_value_on_attribute;
+					if (where.equals(""))
+						where += " attr_" + ranAttId + " = '" + ranAttVl
+						+ "'";
+					else
+						where += " AND attr_" + ranAttId + " = '" + ranAttVl
+								+ "'";
+					ResultSet resultSet = statement
+							.executeQuery("SELECT COUNT(*) AS counter FROM "
+									+ table_prefix
+									+ "reference_data WHERE " + where);
+					resultSet.next();
+					int counter = resultSet.getInt("counter");
+					statement.close();
+					resultSet.close();
+					if (counter == 0) {
+						break;
+					} else if (counter < sample_data_size_step) {
+						if (lastCheck == false) {
+							if (sq.equals(""))
+								sq += "("+where+")";
+							else
+								sq += " OR (" + where +")";
+							break;
+						}
+						lastCheck = false;
+					} else if (counter > sample_data_size_step) {
+						lastCheck = false;
+					}
+				}
+
+				statement = connect.createStatement();
+				if (sq.equals("") == false)
+				{
+					ResultSet resultSet = statement
+							.executeQuery("SELECT COUNT(*) AS counter FROM "
+									+ table_prefix + "reference_data WHERE "
+									+ sq);
+					resultSet.next();
+					int counter = resultSet.getInt("counter");
+					statement.close();
+					resultSet.close();
+					if (counter > sample_data_size) {
+						break;
+					}
+				}
+			} while (true);
+
 			statement = connect.createStatement();
-			int ranAttId = ran.nextInt(App.number_of_attributes) + 1;
-			int ranAttVl = ran.nextInt(App.max_value_on_attribute
-					- App.min_value_on_attribute)
-					+ App.min_value_on_attribute;
-			ResultSet resultSet = statement
-					.executeQuery("SELECT COUNT(*) AS counter FROM "
-							+ table_prefix + "reference_data WHERE attr_"
-							+ ranAttId + " = '" + ranAttVl + "'");
-			int counter = resultSet.getInt("counter");
-			if (counter > sample_data_size)
-			{}
-			else
-			{}
+			statement.executeUpdate("INSERT INTO " + table_prefix
+					+ "reference_data_sample SELECT * FROM "
+					+ table_prefix + "reference_data WHERE " + sq);
 			statement.close();
-			resultSet.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	public Vector<Integer> RunAlgorithmThree(int max) {
@@ -578,14 +621,13 @@ public class DatabaseLayer {
 					+ table_prefix + "reference_queries ORDER BY query_id");
 			while (resultSet.next()) {
 				if (where.equals(""))
-					where = "("+resultSet.getString("query")+")";
+					where = "(" + resultSet.getString("query") + ")";
 				else
 					where += " AND (" + resultSet.getString("query") + ")";
 				String query = "SELECT attr_id FROM " + table_prefix
-						+ "reference_data WHERE "
-						+ where;
+						+ "reference_data WHERE " + where;
 				Statement st2 = connect.createStatement();
-				ResultSet rs2 = statement.executeQuery(query);
+				ResultSet rs2 = st2.executeQuery(query);
 				while (rs2.next()) {
 					if (res.contains(rs2.getInt("attr_id")) == false) {
 						res.add(rs2.getInt("attr_id"));
@@ -609,34 +651,29 @@ public class DatabaseLayer {
 	}
 
 	public void GenerateSelectionQueries() {
-		try
-		{
+		try {
 			Statement st = connect.createStatement();
-			ResultSet rs = st.executeQuery("SELECT * FROM "+table_prefix+"reference_rules");
+			ResultSet rs = st.executeQuery("SELECT * FROM " + table_prefix
+					+ "reference_rules");
 			ReferenceSet r = new ReferenceSet();
-			while (rs.next())
-			{
+			while (rs.next()) {
 				Vector<Vector<String>> attrs = new Vector<Vector<String>>();
 				Vector<Vector<Vector<Integer>>> attrvals = new Vector<Vector<Vector<Integer>>>();
 				String t = rs.getString("rule_attributes");
 				int Attrs = 0;
-				for (String i : t.split(";"))
-				{
+				for (String i : t.split(";")) {
 					Vector<String> t2 = new Vector<String>();
-					for (String j : i.split(","))
-					{
+					for (String j : i.split(",")) {
 						t2.add(j);
 						Attrs++;
 					}
 					attrs.add(t2);
 				}
-				
-				for (int i=1;i<= Attrs;i++)
-				{
+
+				for (int i = 1; i <= Attrs; i++) {
 					Vector<Vector<Integer>> tt = new Vector<Vector<Integer>>();
 					t = rs.getString("values_" + i);
-					for (String j : t.split(";"))
-					{
+					for (String j : t.split(";")) {
 						Vector<Integer> t3 = new Vector<Integer>();
 						for (String k : j.split(","))
 							t3.add(Integer.parseInt(k));
@@ -650,9 +687,7 @@ public class DatabaseLayer {
 			}
 			rs.close();
 			st.close();
-		}
-		catch(Exception ex)
-		{
+		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}

@@ -28,7 +28,7 @@ public class ReferenceSelector {
 		} 
 		else if (App.step.equals("create_sample_dataset"))
 		{
-			db.CreateSampleDB(App.sample_data_size);
+			db.CreateSampleDB(App.sample_data_size,App.sample_data_size_step);
 		}
 		else if (App.step.equals("generate_references")) {
 			for (int i = 0; i < App.number_of_rules; i++) {
