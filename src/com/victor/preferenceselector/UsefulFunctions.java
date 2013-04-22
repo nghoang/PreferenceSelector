@@ -1,4 +1,4 @@
-package com.ngochoang.referenceselector;
+package com.victor.preferenceselector;
 
 import java.util.Vector;
 

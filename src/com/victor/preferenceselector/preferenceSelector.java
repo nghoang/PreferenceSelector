@@ -1,22 +1,21 @@
-package com.ngochoang.referenceselector;
+package com.victor.preferenceselector;
 
 import java.util.Vector;
 
-import com.ngochoang.algorithm.AlgorithmBisection;
-import com.ngochoang.algorithm.AlgorithmOne;
-import com.ngochoang.algorithm.AlgorithmThree;
-import com.ngochoang.algorithm.AlgorithmTwo;
-import com.ngochoang.algorithm.GradualPartialRelease;
-import com.ngochoang.database.DatabaseLayer;
+import com.victor.algorithm.AlgorithmBisection;
+import com.victor.algorithm.AlgorithmOne;
+import com.victor.algorithm.AlgorithmThree;
+import com.victor.algorithm.AlgorithmTwo;
+import com.victor.database.DatabaseLayer;
 
-public class ReferenceSelector {
+public class preferenceSelector {
 
 	DatabaseLayer db = new DatabaseLayer();
-	Vector<ReferenceSet> rules = new Vector<ReferenceSet>();
+	Vector<preferenceSet> rules = new Vector<preferenceSet>();
 
 	public static void main(String[] args) {
 		App.Init();
-		ReferenceSelector ref = new ReferenceSelector();
+		preferenceSelector ref = new preferenceSelector();
 		ref.run();
 	}
 
@@ -32,7 +31,7 @@ public class ReferenceSelector {
 		}
 		else if (App.step.equals("generate_references")) {
 			for (int i = 0; i < App.number_of_rules; i++) {
-				ReferenceSet r = new ReferenceSet();
+				preferenceSet r = new preferenceSet();
 				r.db = db;
 				r.GenerateReferenceSet();
 			}
@@ -40,10 +39,7 @@ public class ReferenceSelector {
 		else if (App.step.equals("generate_queries")) {
 			db.GenerateSelectionQueries();
 		}else if (App.step.equals("run_algorithm")) {
-			if (App.algorithm.equals("gradualpartialrelease")) {
-				GradualPartialRelease al = new GradualPartialRelease(db);
-				al.Process();
-			} else if (App.algorithm.equals("two")) {
+			if (App.algorithm.equals("two")) {
 				AlgorithmTwo al = new AlgorithmTwo(db);
 				al.Process();
 			} else if (App.algorithm.equals("one")) {

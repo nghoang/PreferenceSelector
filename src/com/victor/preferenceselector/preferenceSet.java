@@ -1,12 +1,12 @@
-package com.ngochoang.referenceselector;
+package com.victor.preferenceselector;
 
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Vector;
 
-import com.ngochoang.database.DatabaseLayer;
+import com.victor.database.DatabaseLayer;
 
-public class ReferenceSet {
+public class preferenceSet {
 	public Vector<Vector<String>> referenceAttributeSets;
 	public Vector<Vector<Vector<Integer>>> referenceValueSets;
 	public DatabaseLayer db;

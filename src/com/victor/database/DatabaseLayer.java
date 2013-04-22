@@ -1,4 +1,4 @@
-package com.ngochoang.database;
+package com.victor.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,9 +10,9 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.Vector;
 
-import com.ngochoang.referenceselector.App;
-import com.ngochoang.referenceselector.ReferenceSet;
-import com.ngochoang.referenceselector.UsefulFunctions;
+import com.victor.preferenceselector.App;
+import com.victor.preferenceselector.UsefulFunctions;
+import com.victor.preferenceselector.preferenceSet;
 
 //this class contains all the methods to interact with database
 public class DatabaseLayer {
@@ -155,7 +155,7 @@ public class DatabaseLayer {
 		}
 	}
 
-	public void GenerateSelectionQueries(ReferenceSet r) {
+	public void GenerateSelectionQueries(preferenceSet r) {
 		try {
 			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
 					+ "reference_queries (";
@@ -655,7 +655,7 @@ public class DatabaseLayer {
 			Statement st = connect.createStatement();
 			ResultSet rs = st.executeQuery("SELECT * FROM " + table_prefix
 					+ "reference_rules");
-			ReferenceSet r = new ReferenceSet();
+			preferenceSet r = new preferenceSet();
 			while (rs.next()) {
 				Vector<Vector<String>> attrs = new Vector<Vector<String>>();
 				Vector<Vector<Vector<Integer>>> attrvals = new Vector<Vector<Vector<Integer>>>();

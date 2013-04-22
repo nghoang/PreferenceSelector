@@ -1,4 +1,4 @@
-package com.ngochoang.sampling;
+package com.victor.sampling;
 
 public class SamplingDb {
 	

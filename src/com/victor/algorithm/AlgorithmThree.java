@@ -1,9 +1,9 @@
-package com.ngochoang.algorithm;
+package com.victor.algorithm;
 
 import java.util.Vector;
 
-import com.ngochoang.database.DatabaseLayer;
-import com.ngochoang.referenceselector.App;
+import com.victor.database.DatabaseLayer;
+import com.victor.preferenceselector.App;
 
 public class AlgorithmThree {
 	DatabaseLayer db;
