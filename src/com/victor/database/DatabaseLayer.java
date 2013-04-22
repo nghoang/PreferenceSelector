@@ -52,7 +52,7 @@ public class DatabaseLayer {
 			// .executeQuery("SELECT COUNT(*) AS counter FROM information_schema.tables WHERE table_schema = '"
 			// + App.db_database
 			// + "' AND table_name = 'ds"
-			// + counter + "_reference_data'");
+			// + counter + "_preference_data'");
 			// resultSet.next();
 			// if (resultSet.getInt("counter") == 0)
 			// break;
@@ -65,7 +65,7 @@ public class DatabaseLayer {
 			statement = connect.createStatement();
 			// table_prefix = App.db_prefix;//"ds" + counter + "_";
 			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
-					+ "reference_data (";
+					+ "preference_data (";
 			query += " `attr_id` int(11) NOT NULL AUTO_INCREMENT,";
 			for (int i = 0; i < App.number_of_attributes; i++) {
 				query += " `attr_" + (i + 1) + "` int(11),";
@@ -78,7 +78,7 @@ public class DatabaseLayer {
 			statement = connect.createStatement();
 			// table_prefix = App.db_prefix;//"ds" + counter + "_";
 			query = "CREATE TABLE IF NOT EXISTS " + table_prefix
-					+ "reference_data_sample (";
+					+ "preference_data_sample (";
 			query += " `attr_id` int(11) NOT NULL AUTO_INCREMENT,";
 			for (int i = 0; i < App.number_of_attributes; i++) {
 				query += " `attr_" + (i + 1) + "` int(11),";
@@ -89,7 +89,7 @@ public class DatabaseLayer {
 			statement.close();
 
 			for (int i = 0; i < App.number_of_generated_records; i++) {
-				query = "INSERT INTO " + table_prefix + "reference_data SET ";
+				query = "INSERT INTO " + table_prefix + "preference_data SET ";
 				for (int j = 0; j < App.number_of_attributes; j++) {
 					int attr_value = ran.nextInt(App.max_value_on_attribute
 							- App.min_value_on_attribute)
@@ -111,20 +111,20 @@ public class DatabaseLayer {
 		}
 	}
 
-	void GenenerateReference() {
+	void GeneneratePreference() {
 
 	}
 
-	public void InsertReference(Vector<Vector<String>> referenceAttributeSets,
-			Vector<Vector<Vector<Integer>>> referenceValues) {
+	public void InsertPreference(Vector<Vector<String>> preferenceAttributeSets,
+			Vector<Vector<Vector<Integer>>> preferenceValues) {
 		try {
 			int numAttr = 0;
-			for (Vector<String> t : referenceAttributeSets) {
+			for (Vector<String> t : preferenceAttributeSets) {
 				numAttr += t.size();
 			}
 
 			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
-					+ "reference_rules (";
+					+ "preference_rules (";
 			query += " `rule_id` int(11) NOT NULL AUTO_INCREMENT,";
 			query += " `rule_attributes` varchar(500) ";
 			for (int i = 0; i < App.max_attr_in_rule; i++) {
@@ -135,16 +135,16 @@ public class DatabaseLayer {
 			statement.executeUpdate(query);
 			statement.close();
 
-			query = "INSERT INTO " + table_prefix + "reference_rules SET ";
+			query = "INSERT INTO " + table_prefix + "preference_rules SET ";
 			query += " rule_attributes = '"
 					+ UsefulFunctions
-							.ConvertVectorToString2(referenceAttributeSets)
+							.ConvertVectorToString2(preferenceAttributeSets)
 					+ "' ";
 			for (int i = 0; i < numAttr; i++) {
 				query += ", values_"
 						+ (i + 1)
 						+ " = '"
-						+ UsefulFunctions.ConvertVectorToString(referenceValues
+						+ UsefulFunctions.ConvertVectorToString(preferenceValues
 								.get(i)) + "'";
 			}
 			statement = connect.createStatement();
@@ -158,7 +158,7 @@ public class DatabaseLayer {
 	public void GenerateSelectionQueries(preferenceSet r) {
 		try {
 			String query = "CREATE TABLE IF NOT EXISTS " + table_prefix
-					+ "reference_queries (";
+					+ "preference_queries (";
 			query += " `query_id` int(11) NOT NULL AUTO_INCREMENT,";
 			query += " `query` varchar(5000) ";
 			query += ", `query_attr` varchar(5000) ";
@@ -168,19 +168,19 @@ public class DatabaseLayer {
 			statement.executeUpdate(query);
 			statement.close();
 
-			query = "DELETE FROM " + table_prefix + "reference_queries";
+			query = "DELETE FROM " + table_prefix + "preference_queries";
 			statement = connect.createStatement();
 			statement.executeUpdate(query);
 			statement.close();
 
 			Vector<Vector<String>> rowQueries = new Vector<Vector<String>>();
 			int curAtt = 0;
-			for (Vector<String> t : r.referenceAttributeSets) {
+			for (Vector<String> t : r.preferenceAttributeSets) {
 				query = "";
 				if (t.size() == 1)// no grouped attributes
 				{
 					Vector<String> rowQuery = new Vector<String>();
-					for (Vector<Integer> values : r.referenceValueSets
+					for (Vector<Integer> values : r.preferenceValueSets
 							.get(curAtt)) {
 						if (values.size() == 1) {
 							query = " attr_" + t.get(0) + " = '"
@@ -208,7 +208,7 @@ public class DatabaseLayer {
 					for (int i = 0; i < indexes.length; i++)
 						indexes[i] = 0;
 					for (int i = curAtt; i < curAtt + t.size(); i++)
-						values.add(r.referenceValueSets.get(i));
+						values.add(r.preferenceValueSets.get(i));
 
 					Vector<String> rowQuery = GenerateQueryGroup(t, values,
 							indexes);
@@ -286,9 +286,9 @@ public class DatabaseLayer {
 				}
 				System.out.println(insertingQuery);
 				query = "INSERT INTO " + table_prefix
-						+ "reference_queries SET query='"
+						+ "preference_queries SET query='"
 						+ insertingQuery.replace("'", "''") + "', query_attr='"
-						+ r.referenceAttributeSets.toString()
+						+ r.preferenceAttributeSets.toString()
 						+ "', query_level='" + level + "'";
 				level++;
 				statement = connect.createStatement();
@@ -392,7 +392,7 @@ public class DatabaseLayer {
 			String queryWhere = "";
 			statement = connect.createStatement();
 			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
-					+ table_prefix + "reference_queries");
+					+ table_prefix + "preference_queries");
 			while (resultSet.next()) {
 				if (queryWhere.equals(""))
 					queryWhere += "(" + resultSet.getString("query") + ")";
@@ -403,7 +403,7 @@ public class DatabaseLayer {
 			resultSet.close();
 
 			String query = "SELECT attr_id FROM " + table_prefix
-					+ "reference_data WHERE " + queryWhere;
+					+ "preference_data WHERE " + queryWhere;
 			statement = connect.createStatement();
 			resultSet = statement.executeQuery(query);
 			while (resultSet.next()) {
@@ -423,10 +423,10 @@ public class DatabaseLayer {
 		try {
 			statement = connect.createStatement();
 			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
-					+ table_prefix + "reference_queries ORDER BY query_id");
+					+ table_prefix + "preference_queries ORDER BY query_id");
 			while (resultSet.next()) {
 				String query = "SELECT attr_id FROM " + table_prefix
-						+ "reference_data WHERE "
+						+ "preference_data WHERE "
 						+ resultSet.getString("query");
 				Statement st2 = connect.createStatement();
 				ResultSet rs2 = st2.executeQuery(query);
@@ -459,7 +459,7 @@ public class DatabaseLayer {
 			ResultSet resultSet = statement
 					.executeQuery("SELECT COUNT(*) AS counter FROM "
 							+ table_prefix
-							+ "reference_queries ORDER BY query_level");
+							+ "preference_queries ORDER BY query_level");
 			resultSet.next();
 			int inittotal = resultSet.getInt("counter");
 			int total = inittotal;
@@ -473,7 +473,7 @@ public class DatabaseLayer {
 				statement = connect.createStatement();
 				resultSet = statement.executeQuery("SELECT * FROM "
 						+ table_prefix
-						+ "reference_queries ORDER BY query_level " + "LIMIT "
+						+ "preference_queries ORDER BY query_level " + "LIMIT "
 						+ from + "," + limit);
 				int lastPri = -1;
 				int counter = 1;
@@ -495,7 +495,7 @@ public class DatabaseLayer {
 				Statement statementPd = connect.createStatement();
 				ResultSet resultSetPd = statementPd
 						.executeQuery("SELECT COUNT(attr_id) AS counter FROM "
-								+ table_prefix + "reference_data WHERE "
+								+ table_prefix + "preference_data WHERE "
 								+ query);
 				resultSetPd.next();
 				int resultCounter = res.size() + resultSetPd.getInt("counter");
@@ -528,7 +528,7 @@ public class DatabaseLayer {
 				Statement statementPd = connect.createStatement();
 				ResultSet resultSetPd = statementPd
 						.executeQuery("SELECT attr_id FROM " + table_prefix
-								+ "reference_data WHERE " + query);
+								+ "preference_data WHERE " + query);
 				while (resultSetPd.next())
 					res.add(resultSetPd.getInt("attr_id"));
 				resultSetPd.close();
@@ -540,19 +540,19 @@ public class DatabaseLayer {
 		return res;
 	}
 
-	public boolean FetchReferenceResults() {
+	public boolean FetchPreferenceResults() {
 		Statement statementPd;
 		try {
 			statementPd = connect.createStatement();
 			ResultSet resultSetPd = statementPd
-					.executeQuery("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = 'reference' AND table_name = '"
-							+ table_prefix + "reference_rules+'");
+					.executeQuery("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = 'preference' AND table_name = '"
+							+ table_prefix + "preference_rules+'");
 			statementPd.close();
 			resultSetPd.next();
 			ruleCount = resultSetPd.getInt(0);
 			statementPd = connect.createStatement();
 			ruleSet = statementPd.executeQuery("SELECT * FROM " + table_prefix
-					+ "reference_rules");
+					+ "preference_rules");
 			statementPd.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -585,7 +585,7 @@ public class DatabaseLayer {
 					ResultSet resultSet = statement
 							.executeQuery("SELECT COUNT(*) AS counter FROM "
 									+ table_prefix
-									+ "reference_data WHERE " + where);
+									+ "preference_data WHERE " + where);
 					resultSet.next();
 					int counter = resultSet.getInt("counter");
 					statement.close();
@@ -611,7 +611,7 @@ public class DatabaseLayer {
 				{
 					ResultSet resultSet = statement
 							.executeQuery("SELECT COUNT(*) AS counter FROM "
-									+ table_prefix + "reference_data WHERE "
+									+ table_prefix + "preference_data WHERE "
 									+ sq);
 					resultSet.next();
 					int counter = resultSet.getInt("counter");
@@ -625,8 +625,8 @@ public class DatabaseLayer {
 
 			statement = connect.createStatement();
 			statement.executeUpdate("INSERT INTO " + table_prefix
-					+ "reference_data_sample SELECT * FROM "
-					+ table_prefix + "reference_data WHERE " + sq);
+					+ "preference_data_sample SELECT * FROM "
+					+ table_prefix + "preference_data WHERE " + sq);
 			statement.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -640,14 +640,14 @@ public class DatabaseLayer {
 		try {
 			statement = connect.createStatement();
 			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
-					+ table_prefix + "reference_queries ORDER BY query_id");
+					+ table_prefix + "preference_queries ORDER BY query_id");
 			while (resultSet.next()) {
 				if (where.equals(""))
 					where = "(" + resultSet.getString("query") + ")";
 				else
 					where += " AND (" + resultSet.getString("query") + ")";
 				String query = "SELECT attr_id FROM " + table_prefix
-						+ "reference_data WHERE " + where;
+						+ "preference_data WHERE " + where;
 				Statement st2 = connect.createStatement();
 				ResultSet rs2 = st2.executeQuery(query);
 				while (rs2.next()) {
@@ -676,7 +676,7 @@ public class DatabaseLayer {
 		try {
 			Statement st = connect.createStatement();
 			ResultSet rs = st.executeQuery("SELECT * FROM " + table_prefix
-					+ "reference_rules");
+					+ "preference_rules");
 			preferenceSet r = new preferenceSet();
 			while (rs.next()) {
 				Vector<Vector<String>> attrs = new Vector<Vector<String>>();
@@ -703,8 +703,8 @@ public class DatabaseLayer {
 					}
 					attrvals.add(tt);
 				}
-				r.referenceAttributeSets = attrs;
-				r.referenceValueSets = attrvals;
+				r.preferenceAttributeSets = attrs;
+				r.preferenceValueSets = attrvals;
 				GenerateSelectionQueries(r);
 			}
 			rs.close();

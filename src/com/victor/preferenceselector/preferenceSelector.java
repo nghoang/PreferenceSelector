@@ -29,11 +29,11 @@ public class preferenceSelector {
 		{
 			db.CreateSampleDB(App.sample_data_size,App.sample_data_size_step);
 		}
-		else if (App.step.equals("generate_references")) {
+		else if (App.step.equals("generate_preferences")) {
 			for (int i = 0; i < App.number_of_rules; i++) {
 				preferenceSet r = new preferenceSet();
 				r.db = db;
-				r.GenerateReferenceSet();
+				r.GeneratePreferenceSet();
 			}
 		} 
 		else if (App.step.equals("generate_queries")) {
