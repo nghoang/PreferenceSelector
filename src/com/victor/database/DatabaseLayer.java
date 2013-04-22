@@ -234,28 +234,50 @@ public class DatabaseLayer {
 			for (int i = 0; i < nindexes.length; i++)
 				nindexes[i] = 0;
 
+			
+			//we decomposed group of attributes and values into AND and OR, here we create list of queries from them
 			int level = 0;
 			while (true) {
 				boolean isFinished = false;
 				String insertingQuery = "";
+				//in a rule set, called each line is a rule line, 
+				//we loop in each line and generate the query by priority
 				for (int h = 0; h < rowQueries.size(); h++) {
+					if (nindexes[h] >= rowQueries.get(h).size())
+					{
+						isFinished = true;
+						break;
+					}
 					if (insertingQuery.equals(""))
 						insertingQuery += rowQueries.get(h).get(nindexes[h]);
 					else
 						insertingQuery += " AND ("
 								+ rowQueries.get(h).get(nindexes[h]) + ")";
 
+					//in the last line
 					if (h == rowQueries.size() - 1) {
 
+						boolean cannextstep = false;
+						//create next indexes for next query
 						for (int u = nindexes.length - 1; u >= 0; u--) {
+							if (cannextstep == true)
+								break;
+							//if current line index is the last index value
 							if (nindexes[u] >= rowQueries.get(u).size() - 1) {
+								//put it back to 0 and +1 for the above line
 								nindexes[u] = 0;
-								if (u == 0) {
+								if (u == 0) {//the last one, so we finish
 									isFinished = true;
 									break;
-								} else
+								}
+								else//+1 for the above line
+								{
 									nindexes[u - 1] = nindexes[u - 1] + 1;
+									cannextstep = true;
+								}
 							} else {
+								if (cannextstep == true)
+									break;
 								nindexes[u] = nindexes[u] + 1;
 								break;
 							}
