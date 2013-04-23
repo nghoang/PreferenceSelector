@@ -243,7 +243,7 @@ public class DatabaseLayer {
 				//in a rule set, called each line is a rule line, 
 				//we loop in each line and generate the query by priority
 				for (int h = 0; h < rowQueries.size(); h++) {
-					if (nindexes[h] >= rowQueries.get(h).size())
+					if (nindexes[0] >= rowQueries.get(0).size())
 					{
 						isFinished = true;
 						break;
@@ -272,6 +272,8 @@ public class DatabaseLayer {
 								}
 								else//+1 for the above line
 								{
+									if (nindexes[u-1] >= rowQueries.get(u-1).size() - 1)//if exceed above line, we move the the next above
+										continue;
 									nindexes[u - 1] = nindexes[u - 1] + 1;
 									cannextstep = true;
 								}
