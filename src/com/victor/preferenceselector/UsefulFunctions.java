@@ -3,6 +3,10 @@ package com.victor.preferenceselector;
 import java.util.Vector;
 
 public class UsefulFunctions {
+	public static int RandomInRange(int min, int max)
+	{
+		return min + (int)(Math.random() * ((max - min) + 1));
+	}
 	public static String ConvertVectorToString(Vector<Vector<Integer>> v)
 	{
 		String res = "";

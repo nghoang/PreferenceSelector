@@ -6,8 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.Collections;
 import java.util.Vector;
 
 import com.victor.preferenceselector.App;
@@ -16,12 +15,12 @@ import com.victor.preferenceselector.preferenceSet;
 
 //this class contains all the methods to interact with database
 public class DatabaseLayer {
+	public boolean overflow = false;
 	Connection connect = null;
 	Statement statement = null;
 	PreparedStatement preparedStatement = null;
 	ResultSet res = null;
 	String table_prefix = "1";
-	Random ran = new Random(App.random_seed);
 	static int query_level = 0;
 	public ResultSet ruleSet;
 	public int ruleCount = 0;
@@ -91,16 +90,13 @@ public class DatabaseLayer {
 			for (int i = 0; i < App.number_of_generated_records; i++) {
 				query = "INSERT INTO " + table_prefix + "preference_data SET ";
 				for (int j = 0; j < App.number_of_attributes; j++) {
-					int attr_value = ran.nextInt(App.max_value_on_attribute
-							- App.min_value_on_attribute)
-							+ App.min_value_on_attribute;
+					int attr_value = UsefulFunctions.RandomInRange(App.min_value_on_attribute,App.max_value_on_attribute);
 					if (j == 0)
 						query += " attr_" + (j + 1) + " = " + attr_value;
 					else
 						query += " ,attr_" + (j + 1) + " = " + attr_value;
 				}
-				int price = ran.nextInt(App.max_price - App.min_price)
-						+ App.min_price;
+				int price = UsefulFunctions.RandomInRange(App.min_price,App.max_price);
 				query += " ,price = " + price;
 				statement = connect.createStatement();
 				statement.executeUpdate(query);
@@ -388,13 +384,15 @@ public class DatabaseLayer {
 		return t;
 	}
 
-	public Vector<Integer> RunAlgorithmOne() {
+	public Vector<Integer> RunAlgorithmOne(int max, int drop) {
+		overflow = false;//default we set it false. we will check and set it to true if nb of results >= nb of expected results
 		Vector<Integer> res = new Vector<Integer>();
 		try {
 			String queryWhere = "";
 			statement = connect.createStatement();
 			ResultSet resultSet = statement.executeQuery("SELECT * FROM "
 					+ table_prefix + "preference_queries");
+			//combining all query into one
 			while (resultSet.next()) {
 				if (queryWhere.equals(""))
 					queryWhere += "(" + resultSet.getString("query") + ")";
@@ -404,8 +402,9 @@ public class DatabaseLayer {
 			statement.close();
 			resultSet.close();
 
+			//run and get result
 			String query = "SELECT attr_id FROM " + table_prefix
-					+ "preference_data WHERE " + queryWhere;
+					+ "preference_data WHERE " + queryWhere + " ORDER BY price ASC";
 			statement = connect.createStatement();
 			resultSet = statement.executeQuery(query);
 			while (resultSet.next()) {
@@ -413,13 +412,62 @@ public class DatabaseLayer {
 			}
 			statement.close();
 			resultSet.close();
+			
+			/*//overflow check
+			if (res.size() >= App.number_of_returned_results)
+				overflow = true;
+			else
+				overflow = false;
+			
+			//do the drop
+			Vector<Integer> res2 = new Vector<Integer>();
+			int newsize = res.size() - res.size() * App.drop_rate/100;
+			if (newsize < App.number_of_returned_results)
+				newsize = App.number_of_returned_results;
+			for (int i2=0;i2<newsize;i2++)
+			{
+				res2.add(res.get(i2));
+			}
+				
+			if (res.size() <= App.number_of_returned_results)
+				return res;
+			else
+			{
+				//selecting randomly expected results
+				res = new Vector<Integer>();
+				Collections.shuffle(res2);
+				
+				for (int i2=0;i2<App.number_of_returned_results;i2++)
+					res.add(res2.get(i2));
+				return res;
+			}*/
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		return res;
+		return DoPeepsDrop(res,max,drop);
+	}
+	
+	Vector<Integer> DoPeepsDrop(Vector<Integer> resultSet, int max, int drop)
+	{
+		Vector<Integer> res = new Vector<Integer>();
+		int newsize = resultSet.size() - resultSet.size() * drop/100;
+		for (int i2=0;i2<newsize;i2++)
+		{
+			res.add(res.get(i2));
+		}
+		if (res.size() <= max)
+			return res;
+		else
+		{
+			Vector<Integer> res2 = new Vector<Integer>();
+			Collections.shuffle(res);
+			for (int i2=0;i2<max;i2++)
+				res2.add(res.get(i2));
+			return res2;
+		}
 	}
 
-	public Vector<Integer> RunAlgorithmTwo(Integer max) {
+	public Vector<Integer> RunAlgorithmTwo(int max,int drop) {
 		Vector<Integer> res = new Vector<Integer>();
 		boolean isFinished = false;
 		try {
@@ -451,10 +499,10 @@ public class DatabaseLayer {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		return res;
+		return DoPeepsDrop(res, max, drop);
 	}
 
-	public Vector<Integer> RunAlgorithmBisection() {
+	public Vector<Integer> RunAlgorithmBisection(int max, int drop) {
 		Vector<Integer> res = new Vector<Integer>();
 		try {
 			statement = connect.createStatement();
@@ -504,7 +552,7 @@ public class DatabaseLayer {
 				resultSetPd.close();
 				resultSetPd.close();
 
-				if (resultCounter < App.number_of_returned_results) {
+				if (resultCounter < max) {
 					from = from + limit;
 					if (limit == total)
 						break;
@@ -513,7 +561,7 @@ public class DatabaseLayer {
 						break;
 					}
 					limit = newlimit;
-				} else if (resultCounter > App.number_of_returned_results) {
+				} else if (resultCounter > max) {
 					if (limit <= 1)
 						break;
 					if (limit == total)
@@ -539,7 +587,7 @@ public class DatabaseLayer {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		return res;
+		return DoPeepsDrop(res, max, drop);
 	}
 
 	public boolean FetchPreferenceResults() {
@@ -571,13 +619,9 @@ public class DatabaseLayer {
 				String where = "";
 				boolean lastCheck = true;
 				while (true) {
-					Random ran = new Random();
-
 					statement = connect.createStatement();
-					int ranAttId = ran.nextInt(App.number_of_attributes) + 1;
-					int ranAttVl = ran.nextInt(App.max_value_on_attribute
-							- App.min_value_on_attribute)
-							+ App.min_value_on_attribute;
+					int ranAttId = UsefulFunctions.RandomInRange(1,App.number_of_attributes);
+					int ranAttVl = UsefulFunctions.RandomInRange(App.min_value_on_attribute,App.max_value_on_attribute);
 					if (where.equals(""))
 						where += " attr_" + ranAttId + " = '" + ranAttVl
 						+ "'";
@@ -635,7 +679,7 @@ public class DatabaseLayer {
 		}
 	}
 
-	public Vector<Integer> RunAlgorithmThree(int max) {
+	public Vector<Integer> RunAlgorithmThree(int max, int drop) {
 		Vector<Integer> res = new Vector<Integer>();
 		boolean isFinished = false;
 		String where = "";
@@ -671,7 +715,7 @@ public class DatabaseLayer {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		return res;
+		return DoPeepsDrop(res, max, drop);
 	}
 
 	public void GenerateSelectionQueries() {

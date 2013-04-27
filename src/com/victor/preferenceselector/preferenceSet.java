@@ -1,21 +1,19 @@
 package com.victor.preferenceselector;
 
-import java.util.ArrayList;
-import java.util.Random;
 import java.util.Vector;
 
 import com.victor.database.DatabaseLayer;
 
+
+//this class contains functions to generate and manage the reference rules
 public class preferenceSet {
 	public Vector<Vector<String>> preferenceAttributeSets;
 	public Vector<Vector<Vector<Integer>>> preferenceValueSets;
 	public DatabaseLayer db;
-	Random ran = new Random();
 	public static int numAttr = 0;
 
 	public void GeneratePreferenceSet() {
-		numAttr = ran.nextInt(App.max_attr_in_rule - App.min_attr_in_rule + 1)
-				+ App.min_attr_in_rule;
+		numAttr = UsefulFunctions.RandomInRange(App.min_attr_in_rule,App.max_attr_in_rule);
 		preferenceAttributeSets = new Vector<Vector<String>>();
 		Vector<String> refSet = new Vector<String>();
 		Vector<Integer> selected = new Vector<Integer>();// selected attribute
@@ -25,12 +23,12 @@ public class preferenceSet {
 		for (int i = 0; i < numAttr; i++) {
 			int att = 1;
 			do {
-				att = ran.nextInt(App.number_of_attributes)+1;
+				att = UsefulFunctions.RandomInRange(1,App.number_of_attributes);
 			} while (selected.contains(att) == true);
 			selected.add(att);
 
 			int newGroup = 1;
-			if (ran.nextInt(100)+1 <= App.attribute_grouping_rate)
+			if (UsefulFunctions.RandomInRange(1,100) <= App.attribute_grouping_rate)
 				newGroup = 0;
 			
 			if (newGroup == 0)// add to the current set
@@ -58,23 +56,28 @@ public class preferenceSet {
 
 		preferenceValueSets = new Vector<Vector<Vector<Integer>>>();
 		
-		for (int i = 0; i < numAttr; i++) {
+		for (int i = 0; i < numAttr; i++) {//loop number of generating rule
+			//store the generated values
 			Vector<Vector<Integer>> preferenceValues = new Vector<Vector<Integer>>();
+			//temporary variable to store buffer generated values
 			Vector<Integer> values = new Vector<Integer>();
-			int numValues = ran.nextInt(numAttr) + 1;
+			//creating random number of values for one attribute
+			int numValues = App.min_values_in_rule + (int)(Math.random() * ((App.max_values_in_rule - App.min_values_in_rule) + 1));
+			//var to store the generated value to avoid duplicated generated values
 			Vector<Integer> selectedV = new Vector<Integer>();
 			for (int j = 0; j < numValues; j++) {
 				int newGroup = 1;
-				if (ran.nextInt(100)+1 <= App.attribute_grouping_rate)
+				if (UsefulFunctions.RandomInRange(1,100) <= App.attribute_grouping_rate)
 					newGroup = 0;
+				
+				//randomly generate one value
 				int v = 0;
 				do {
-					v = ran.nextInt(App.max_customer_value_on_attribute
-							- App.min_customer_value_on_attribute)
-							+ App.min_customer_value_on_attribute;
+					v = UsefulFunctions.RandomInRange(App.min_customer_value_on_attribute,App.max_customer_value_on_attribute);
 				} while (selectedV.contains(v) == true);
 				selectedV.add(v);
 				
+				//decide if group them into a group or not
 				if (newGroup == 0)
 				{
 					values.add(v);
